@@ -20,20 +20,20 @@
 
 <script>
 
-  var nodes = [{id:"trump",main:true,count:40}];
-  var links = [];
-
   var color = d3.scaleOrdinal(d3.schemeCategory20);
 
   var svg = d3.select("svg"),
     width = +svg.attr("width"),
     height = +svg.attr("height");
 
+  var nodes = [{id:"trump",main:true,count:40,fx:width/2,fy:height/2}];
+  var links = [];
+
 
   var simulation = d3.forceSimulation()
     .force("center", d3.forceCenter(width / 2, height / 2))
     /*.force("link", d3.forceLink().id(function(d) { return d.index }))*/
-    .force("collide",d3.forceCollide( function(d){return d.count + 10 }).iterations(16) )
+    .force("collide",d3.forceCollide( function(d){return d.count*2.0}).iterations(16) )
     .force("charge", d3.forceManyBody())
     .force("y", d3.forceY(0))
     .force("x", d3.forceX(0))
@@ -42,7 +42,7 @@
 
 
   setInterval(function () {
-    nodes = nodes.concat( [{id:'salieri'+Math.random(),count:10}])
+    nodes = nodes.concat( [{id:'salieri'+Math.random(),count:10,x:width/2,y:height/2}])
     nodes = nodes.splice(0,5)
     update(nodes)
     simulation
@@ -68,16 +68,18 @@
       .append('g')
       .attr("class", "node-group")
 
+
     ng.append('circle')
-      .attr("r", function(d){return d.count})
       .attr("fill", function (d) {
         return d.main ? color(1) : color(d.group);
       })
       .attr("class",function(d){ return d.main?"main":"";})
+      .transition().duration(500)
+      .attrTween("r", function(d){return d3.interpolateNumber(0,d.count)})
 
     ng.append('text').text(function(d){
       return d.id
-    })
+    }).transition().duration(2000).styleTween("opacity",function(){return d3.interpolateNumber(0,1)})
 
     //update
     nodegroups.attr('r',function(d){return d.count})
