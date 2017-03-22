@@ -1,61 +1,87 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 <style>
 
-  .links line {
-    stroke: #999;
-    stroke-opacity: 0.6;
+
+  input{
+    display:block;
+    margin:0 auto;
   }
 
-  .nodes circle {
+  svg{
+    border:1px solid lightgray;
+    display:block;
+    margin:0 auto;
+  }
+
+  .node-group circle {
     stroke: #fff;
     stroke-width: 1.5px;
+  }
+  .node-group text{
+    font-size:12px;
+  }
+
+  .nodes.main circle {
+    stroke: #fff;
+    stroke-width: 1.5px;
+
   }
 
 
 </style>
-<svg width="960" height="600"></svg>
+<div class="container">
+  <div class="row">
+    <h3 style="text-align:center;">Get twitter most-frequent words sourrounding a search term</h3>
+    <div style="padding:15px;" class="col-md-12 input">
+      <input id="search-term" type="text" class="input-lg" placeholder="twitter search term">
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <svg width="960" height="600"></svg>
+    </div>
+  </div>
+</div>
+
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.2/socket.io.js"></script>
 
+
+
 <script>
 
-  var color = d3.scaleOrdinal(d3.schemeCategory20);
+  var socket = io('http://localhost:5000');
+
+  var color = d3.scaleLinear().domain([0,20]).range(["white","#4169e1"]);
+  /*var color = d3.scaleOrdinal(d3.schemeCategory20);*/
 
   var svg = d3.select("svg"),
     width = +svg.attr("width"),
     height = +svg.attr("height");
 
-  var nodes = [{id:"trump",main:true,count:40,fx:width/2,fy:height/2}];
+  var trumpNode  = {id:"Trump",main:true,count:80,fx:width/2,fy:height/2};
+  var nodes = [trumpNode];
   var links = [];
 
+  var forceStrength = 0.02;
+
+  function charge(d) {
+    return -forceStrength * Math.pow(d.count, 2.0);
+  }
 
   var simulation = d3.forceSimulation()
-    .force("center", d3.forceCenter(width / 2, height / 2))
-    /*.force("link", d3.forceLink().id(function(d) { return d.index }))*/
-    .force("collide",d3.forceCollide( function(d){return d.count*2.0}).iterations(16) )
-    .force("charge", d3.forceManyBody())
-    .force("y", d3.forceY(0))
-    .force("x", d3.forceX(0))
+    .force('x', d3.forceX().strength(forceStrength).x(width/2))
+    .force('y', d3.forceY().strength(forceStrength).y(height/2))
+    .force("collide",d3.forceCollide().radius(function(d){return d.count*2+20}).iterations(16).strength(0.02) )
+    .force('charge', d3.forceManyBody().strength(charge))
+    .velocityDecay(0.2)
 
 
-
-
-  setInterval(function () {
-    nodes = nodes.concat( [{id:'salieri'+Math.random(),count:10,x:width/2,y:height/2}])
-    nodes = nodes.splice(0,5)
-    update(nodes)
-    simulation
-      .nodes(nodes)
-      .on("tick", ticked);
-
-    simulation.alphaTarget(0.3).restart()
-
-  },5000)
 
 
   function update(newData){
-
 
     var nodegroups = svg.selectAll(".node-group")
       .data(newData,function(d){return d.id})
@@ -70,29 +96,73 @@
 
 
     ng.append('circle')
-      .attr("fill", function (d) {
-        return d.main ? color(1) : color(d.group);
-      })
       .attr("class",function(d){ return d.main?"main":"";})
       .transition().duration(500)
-      .attrTween("r", function(d){return d3.interpolateNumber(0,d.count)})
+      .attrTween("r", function(d){return d3.interpolateNumber(0,d.count*2)})
+      .attr('fill',function(d){return d.main?color(20):color(d.color);})
 
-    ng.append('text').text(function(d){
-      return d.id
-    }).transition().duration(2000).styleTween("opacity",function(){return d3.interpolateNumber(0,1)})
+    ng.append('text')
+      .attr("text-anchor","middle")
+      .text(function(d){return d.id})
+      .transition().duration(2000).styleTween("opacity",function(){return d3.interpolateNumber(0,1)})
 
     //update
-    nodegroups.attr('r',function(d){return d.count})
-
+    nodegroups.select('circle').transition().duration(500)
+      .attr('r',function(d){return d.count*2})
+      .attr('fill',function(d){return d.main?color(20):color(d.color);})
   }
 
-  var socket = io('http://localhost:5000');
+
   socket.on('connect',function(){
-    socket.emit('subscribe')
+    socket.emit('subscribe');
   })
 
   socket.on('update',function(data){
-    console.log('new socket data',data)
+
+    var obj = JSON.parse(data)
+    var newData = obj.map(function(d){
+      if(d[0]=='Trump'){
+        return {'id':d[0],'count':d[1],fx:width/2,fy:height/2}
+      }
+        return {'id':d[0],'count':d[1]}
+    })
+    //replace nodes
+    nodes.forEach(function(n){
+      var found = false;
+      newData.forEach(function(newNode){
+        if(n.id===newNode.id){
+          if(!n.main) {
+            n.count = newNode.count;
+            n.color = n.color + 1;
+          }
+          found = true;
+          newNode.found=true;
+        }
+      })
+      if(!found){
+        n.remove=true;
+      }
+    })
+
+    nodes = nodes.filter(function(n){
+      return !n.remove;
+    })
+
+    newData.forEach(function(node){
+      if(!node.found){
+        node.color = 1;
+        nodes.push(node);
+      }
+    })
+
+    update(nodes)
+    simulation
+      .nodes(nodes)
+      .on("tick", ticked)
+
+
+    simulation.alpha(1).restart();
+
   })
 
   simulation
@@ -100,108 +170,10 @@
     .on("tick", ticked);
 
   function ticked() {
-/*
-    link
-      .attr("x1", function(d) { return d.source.x; })
-      .attr("y1", function(d) { return d.source.y; })
-      .attr("x2", function(d) { return d.target.x; })
-      .attr("y2", function(d) { return d.target.y; });
-*/
 
     svg.selectAll(".node-group")
       .attr("transform", function(d) { return "translate("+d.x+","+d.y+")"; })
   }
 
-
-
-
-  /*var link = svg.append("g")
-    .attr("class", "links")
-    .selectAll("line")
-    .data(links)
-    .enter().append("line")
-    .attr("stroke-width", function(d) { return Math.sqrt(d.value); });*/
-
-
-
-/*   node = node
-    .call(d3.drag()
-      .on("start", dragstarted)
-      .on("drag", dragged)
-      .on("end", dragended))
-
-  node.append('circle')
-    .attr("r", function(d){console.log(d);return d.count})
-    .attr("fill", function(d) { return color(d.group); })
-
-  node.append('text').text(function(d){
-    console.log(d);
-    return d.id
-  })*/
-
-
-
-
-  /*d3.json("miserables.json", function(error, graph) {
-    if (error) throw error;
-
-    var link = svg.append("g")
-      .attr("class", "links")
-      .selectAll("line")
-      .data(graph.links)
-      .enter().append("line")
-      .attr("stroke-width", function(d) { return Math.sqrt(d.value); });
-
-    var node = svg.append("g")
-      .attr("class", "nodes")
-      .selectAll("circle")
-      .data(graph.nodes)
-      .enter().append("circle")
-      .attr("r", 5)
-      .attr("fill", function(d) { return color(d.group); })
-      .call(d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended));
-
-    node.append("title")
-      .text(function(d) { return d.id; });
-
-    simulation
-      .nodes(graph.nodes)
-      .on("tick", ticked);
-
-    simulation.force("link")
-      .links(graph.links);
-
-    function ticked() {
-      link
-        .attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
-
-      node
-        .attr("cx", function(d) { return d.x; })
-        .attr("cy", function(d) { return d.y; });
-    }
-  });*/
-
-  function dragstarted(d) {
-    if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-    d.fx = d.x;
-    d.fy = d.y;
-  }
-
-  function dragged(d) {
-    d.fx = d3.event.x;
-    d.fy = d3.event.y;
-  }
-
-  function dragended(d) {
-    if (!d3.event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
-  }
 
 </script>
