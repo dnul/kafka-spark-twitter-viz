@@ -28,7 +28,8 @@ if __name__ == "__main__":
     # RDD with initial state (key, value) pairs
     initialStateRDD = sc.parallelize([(u'hello', 1), (u'world', 1)])
 
-    
+
+    #websocket = SocketIO('localhost',5000)
 
     def getConnection():
         ws = SocketIO('localhost',5000)
@@ -38,7 +39,7 @@ if __name__ == "__main__":
         ws = getConnection()
         values = rdd.take(10)
         ws.emit('customevent',values)
-        
+        ws.disconnect()
 
 
     def updateFunc(new_values, last_sum):
@@ -49,14 +50,13 @@ if __name__ == "__main__":
 
 
     running_counts = lines.flatMap(lambda line: line.split(" ")) \
-        .map(lambda word: (word, 1)) \
+        .map(lambda word: (word.lower(), 1)) \
         .filter(lambda x: x[0].lower() not in common_words and len(x[0])>3)\
         .reduceByKeyAndWindow(lambda x,y:x+y,24,4,slideDuration=2)
         
 
     sorted_counts =  running_counts.transform(lambda rdd: rdd.sortBy(lambda x: -x[1]))
 
-    
     sorted_counts.pprint()
 
     result = sorted_counts.foreachRDD(sendRDDPartition)

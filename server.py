@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask,request,session
 from flask import render_template
 from flask_socketio import SocketIO
 from flask_socketio import join_room, leave_room
@@ -13,25 +13,39 @@ import twitter
 import json
 
 
-class TwitterSearchProducer():
-    def __init__(self):
-        self.kafka = SimpleClient("localhost:9092")
-        self.api = twitter.Api(consumer_key='***REMOVED***',
+
+kafka = SimpleClient("localhost:9092")
+api = twitter.Api(consumer_key='***REMOVED***',
             consumer_secret='***REMOVED***',
             access_token_key='***REMOVED***',
             access_token_secret='***REMOVED***')
-        self.producer = KafkaProducer(bootstrap_servers='localhost:9092')
+producer = KafkaProducer(bootstrap_servers='localhost:9092')
+
+
+class TwitterSearchProducer():
+    def __init__(self):
+        self.stopFlag = False
+
+
+
+    def stop(self):
+        self.stopFlag=True
 
     def search(self,term):
-		for status in self.api.GetStreamFilter(track=['trump']):
-			if 'text' in status:
-				text = status['text']
-				self.producer.send("kafkaesque",text.encode('utf-8'))
+        for status in api.GetStreamFilter(track=[term]):
+            if 'text' in status:
+                text = status['text']
+                producer.send("kafkaesque",text.encode('utf-8'))
+            if self.stopFlag:
+                break;
 
 executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
 socketio = SocketIO(app)
+future = None
 searchApi = TwitterSearchProducer()
+
+
 
 
 @app.route('/')
@@ -41,7 +55,22 @@ def hello_world():
 
 @app.route('/search',methods=['POST'])
 def search():
-    executor.submit(searchApi.search,'trump')
+    global searchApi
+    json_dict = request.get_json()
+    print(json_dict['term'])
+    if 'term' in json_dict:
+        print(searchApi,'searchapi')
+        if searchApi is not None:
+           searchApi.stop()
+        searchApi = TwitterSearchProducer()
+
+
+        executor.submit(searchApi.search,json_dict['term'])
+
+
+        session['query'] = json_dict['term']
+        print('searching ',str(json_dict['term']))
+
     return ('',200)
 
 
@@ -62,6 +91,9 @@ def handle_custom_event(jsonData):
 def handle_suscribe():
 	join_room('feed')
 
+
+# set the secret key.  keep this really secret:
+app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
 
 
