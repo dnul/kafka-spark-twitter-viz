@@ -38,7 +38,7 @@ if __name__ == "__main__":
     def sendRDDPartition(rdd):
         ws = getConnection()
         values = rdd.take(10)
-        ws.emit('customevent',values)
+        ws.emit('spark-update',values)
         ws.disconnect()
 
 

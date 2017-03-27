@@ -15,18 +15,16 @@ import json
 
 
 kafka = SimpleClient("localhost:9092")
-api = twitter.Api(consumer_key='YnJhmBnBkaRY9KrIRoidA',
-            consumer_secret='lAdMxNrYqKxWJ8mh8g79AYiUGIxnCqG2V3soOZnnwVM',
-            access_token_key='556210107-2gQxW6J54wErB9t0YlqqfH6IZPCRgQa6rkTlMCc3',
-            access_token_secret='ikjvynp1eZRoxRsdPtQPS4DpCigKxpHEN27RAFPU')
+api = twitter.Api(consumer_key='<consumer_key>',
+            consumer_secret='<consumer_secret>',
+            access_token_key='<access_token>',
+            access_token_secret='<access_token_secret>')
 producer = KafkaProducer(bootstrap_servers='localhost:9092')
 
 
 class TwitterSearchProducer():
     def __init__(self):
         self.stopFlag = False
-
-
 
     def stop(self):
         self.stopFlag=True
@@ -42,7 +40,6 @@ class TwitterSearchProducer():
 executor = ThreadPoolExecutor(2)
 app = Flask(__name__)
 socketio = SocketIO(app)
-future = None
 searchApi = TwitterSearchProducer()
 
 
@@ -57,19 +54,17 @@ def hello_world():
 def search():
     global searchApi
     json_dict = request.get_json()
-    print(json_dict['term'])
     if 'term' in json_dict:
-        print(searchApi,'searchapi')
+
         if searchApi is not None:
            searchApi.stop()
         searchApi = TwitterSearchProducer()
 
-
+        #start producer with search term
         executor.submit(searchApi.search,json_dict['term'])
 
-
         session['query'] = json_dict['term']
-        print('searching ',str(json_dict['term']))
+        print('searching.. ',str(json_dict['term']))
 
     return ('',200)
 
@@ -82,11 +77,14 @@ def handle_message(message):
 def handle_json(json):
     print('received json: ' + str(json))
 
-@socketio.on('customevent')
+
+#receives updates from the apache-spark consumer through websocket and feeds it to connected clients
+@socketio.on('spark-update')
 def handle_custom_event(jsonData):
 	print('received custom event' + str(jsonData))
 	socketio.emit('update',json.dumps(jsonData,ensure_ascii=False),room='feed')
 
+#front-end subscribe to an update channel
 @socketio.on('subscribe')
 def handle_suscribe():
 	join_room('feed')
@@ -100,5 +98,4 @@ app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
 
 if __name__ == '__main__':
-#	app.run(debug=True)
 	socketio.run(app,debug=True)
