@@ -7,6 +7,10 @@ from pyspark.streaming import StreamingContext
 from pyspark.streaming.kafka import KafkaUtils
 from pyspark import SparkConf
 import socketio.client
+import os
+
+KAFKA_BROKER = os.environ.get('kafka_broker')
+SERVER_WEBSOCKET = os.environ.get('server_ws')
 
 
 if __name__ == "__main__":
@@ -29,7 +33,7 @@ if __name__ == "__main__":
 
     def getConnection():
         ws = socketio.Client()
-        ws.connect('http://host.docker.internal:5000')
+        ws.connect('http://'+SERVER_WEBSOCKET)
         return ws
 
     def sendRDDPartition(rdd):
@@ -43,7 +47,7 @@ if __name__ == "__main__":
     def updateFunc(new_values, last_sum):
         return sum(new_values) + (last_sum or 0)
 
-    kvs = KafkaUtils.createDirectStream(ssc, ["kafkaesque"], {"bootstrap.servers": 'kafka:9092'})
+    kvs = KafkaUtils.createDirectStream(ssc, ["kafkaesque"], {"bootstrap.servers": KAFKA_BROKER})
     lines = kvs.map(lambda x: x[1])
 
 

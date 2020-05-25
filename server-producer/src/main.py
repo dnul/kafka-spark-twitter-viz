@@ -10,6 +10,10 @@ from flask import make_response
 from concurrent.futures import ThreadPoolExecutor
 import twitter
 import json
+import os
+
+
+KAFKA_BROKER = os.environ.get("kafka_broker")
 
 
 api = twitter.Api(consumer_key='YnJhmBnBkaRY9KrIRoidA',
@@ -21,7 +25,7 @@ api = twitter.Api(consumer_key='YnJhmBnBkaRY9KrIRoidA',
 class TwitterSearchProducer():
     def __init__(self):
         self.stopFlag = False
-        self.producer = KafkaProducer(bootstrap_servers='localhost:9093')
+        self.producer = KafkaProducer(bootstrap_servers=KAFKA_BROKER)
 
     def stop(self):
         self.stopFlag = True

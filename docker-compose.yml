@@ -22,17 +22,23 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 #
-#  server:
-#    depends_on: 
-#        - kafka
-#        - zookeeper
-#    build: ./server-producer/
-#    ports:
-#        - 5000:5000
+  server:
+    depends_on: 
+        - kafka
+        - zookeeper
+    build: ./server-producer/
+    ports:
+        - 5000:5000
+    environment:
+        kafka_broker: 'kafka:9092'
   processor:
       build: ./processor/
       depends_on:
         - kafka
+      environment:
+        server_ws: 'server:5000'
+        kafka_broker: 'kafka:9092'
+
 
     
     
