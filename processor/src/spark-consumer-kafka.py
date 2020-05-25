@@ -5,12 +5,32 @@ import sys
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.streaming.kafka import KafkaUtils
+from kafka import KafkaProducer
+from kafka import KafkaClient
 from pyspark import SparkConf
 import socketio.client
 import os
+from time import sleep
 
 KAFKA_BROKER = os.environ.get('kafka_broker')
 SERVER_WEBSOCKET = os.environ.get('server_ws')
+
+def wait_for_kafka():
+	is_connected=False
+	producer = None
+	while not is_connected:
+		
+		try:
+			sleep(10)
+			producer = KafkaProducer(bootstrap_servers=KAFKA_BROKER)
+			is_connected=True
+
+		except Exception:
+			print('error connecting')
+			pass
+	
+	return producer
+
 
 
 if __name__ == "__main__":
@@ -46,6 +66,8 @@ if __name__ == "__main__":
 
     def updateFunc(new_values, last_sum):
         return sum(new_values) + (last_sum or 0)
+
+    wait_for_kafka()
 
     kvs = KafkaUtils.createDirectStream(ssc, ["kafkaesque"], {"bootstrap.servers": KAFKA_BROKER})
     lines = kvs.map(lambda x: x[1])

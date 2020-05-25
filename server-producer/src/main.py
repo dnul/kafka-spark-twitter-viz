@@ -22,10 +22,26 @@ api = twitter.Api(consumer_key='YnJhmBnBkaRY9KrIRoidA',
                   access_token_secret='ikjvynp1eZRoxRsdPtQPS4DpCigKxpHEN27RAFPU')
 
 
+def get_producer():
+	is_connected=False
+	producer = None
+	while not is_connected:
+		
+		try:
+			sleep(1)
+			producer = KafkaProducer(bootstrap_servers=KAFKA_BROKER)
+			is_connected=True
+
+		except Exception:
+			print('error connecting')
+			pass
+	
+	return producer
+
 class TwitterSearchProducer():
     def __init__(self):
         self.stopFlag = False
-        self.producer = KafkaProducer(bootstrap_servers=KAFKA_BROKER)
+        self.producer = get_producer()
 
     def stop(self):
         self.stopFlag = True
