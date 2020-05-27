@@ -14,12 +14,15 @@ import os
 
 
 KAFKA_BROKER = os.environ.get("kafka_broker")
+TWITTER_CONSUMER_KEY= os.environ.get("TWITTER_CONSUMER_KEY")
+TWITTER_CONSUMER_SECRET= os.environ.get("TWITTER_CONSUMER_SECRET")
+TWITTER_ACCESS_TOKEN_KEY= os.environ.get("TWITTER_ACCESS_TOKEN_KEY")
+TWITTER_ACCESS_TOKEN_SECRET= os.environ.get("TWITTER_ACCESS_TOKEN_SECRET")
 
-
-api = twitter.Api(consumer_key='YnJhmBnBkaRY9KrIRoidA',
-                  consumer_secret='lAdMxNrYqKxWJ8mh8g79AYiUGIxnCqG2V3soOZnnwVM',
-                  access_token_key='556210107-2gQxW6J54wErB9t0YlqqfH6IZPCRgQa6rkTlMCc3',
-                  access_token_secret='ikjvynp1eZRoxRsdPtQPS4DpCigKxpHEN27RAFPU')
+api = twitter.Api(consumer_key=TWITTER_CONSUMER_KEY,
+                  consumer_secret=TWITTER_CONSUMER_SECRET,
+                  access_token_key=TWITTER_ACCESS_TOKEN_KEY,
+                  access_token_secret=TWITTER_ACCESS_TOKEN_SECRET)
 
 
 def get_producer():

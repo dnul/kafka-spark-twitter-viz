@@ -25,12 +25,8 @@ services:
       test: ["CMD","curl -s localhost:9092"]
       interval: 10s
       timeout: 10s
-      
-#
   server:
     depends_on: 
-#      kafka:
-#        condition: service_healthy
       zookeeper:
         condition: service_started
         
@@ -38,8 +34,11 @@ services:
     ports:
         - 5000:5000
     environment:
-
         kafka_broker: 'kafka:9092'
+        TWITTER_CONSUMER_KEY: <twitter_consumer_key>
+        TWITTER_CONSUMER_SECRET: <twitter_consumer_secret>
+        TWITTER_ACCESS_TOKEN_KEY: <twitter_access_token_key>
+        TWITTER_ACCESS_TOKEN_SECRET: <twitter_access_token_secret>
   processor:
       build: ./processor/
       depends_on:

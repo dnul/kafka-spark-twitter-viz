@@ -35,7 +35,6 @@ def wait_for_kafka():
 
 if __name__ == "__main__":
     conf = SparkConf().set("spark.jars", "./spark-streaming-kafka-0-8-assembly_2.11-2.4.5.jar")
-    #conf = SparkConf().set("spark.jars", "spark-streaming-kafka-0-8_2.11-2.4.5.jar")
     sc = SparkContext(appName="PythonStreamingDirectKafkaWordCount",conf=conf)
     ssc = StreamingContext(sc, 2)
     ssc.checkpoint("checkpoint")
@@ -45,8 +44,6 @@ if __name__ == "__main__":
     common_words = {}
     for line in common_words_file.readlines():
         common_words[line.strip('\n')] = True
-
-
 
     # RDD with initial state (key, value) pairs
     initialStateRDD = sc.parallelize([(u'hello', 1), (u'world', 1)])
@@ -59,7 +56,6 @@ if __name__ == "__main__":
     def sendRDDPartition(rdd):
         ws = getConnection()
         values = rdd.take(10)
-        print(values)
         ws.emit('spark-update',values)
         ws.disconnect()
 
@@ -67,6 +63,7 @@ if __name__ == "__main__":
     def updateFunc(new_values, last_sum):
         return sum(new_values) + (last_sum or 0)
 
+    #waits for kafka broker to be available
     wait_for_kafka()
 
     kvs = KafkaUtils.createDirectStream(ssc, ["kafkaesque"], {"bootstrap.servers": KAFKA_BROKER})
