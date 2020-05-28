@@ -38,3 +38,11 @@ Darker and bigger blobs  =>  more relevant terms.
 ## Purpose
 
 This is just a toy project to start exploring some of the streaming apis available out there and see how they play out with the other components.
+
+
+## Next steps
+
+* try out kafka streaming analysis instead of spark-streaming
+* use (key,value) messages within the topic to handle simultaneous search terms
+* try out multiple kafka broker instances
+* make better data-viz and show more info
